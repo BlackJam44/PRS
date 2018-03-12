@@ -24,6 +24,7 @@ void signal_handle(int sig){
 }
 
 int main (int argc, char *argv[]) {
+  int COMMUNICATION_PORT;
 
   // structure addr_in creation
   struct sockaddr_in adresse;
@@ -32,7 +33,7 @@ int main (int argc, char *argv[]) {
   char buffer[RCVSIZE];
   char echo[RCVSIZE];
 
-  // create socket udp
+  // creation of connection socket
   int udp_sock= socket(AF_INET, SOCK_DGRAM, 0);
 
   // handle error
@@ -46,20 +47,45 @@ int main (int argc, char *argv[]) {
 
   // setting of addr_in structure
   adresse.sin_family= AF_INET;
-  adresse.sin_port= htons(PORT_SERV);
+  adresse.sin_port= htons(CONNECTION_PORT);
   adresse.sin_addr.s_addr= htonl(INADDR_ANY);
 
-  // Link addr structure and the socket descriptor
+  // Link addr structure and the connection socket descriptor
   if (bind(udp_sock, (struct sockaddr*) &adresse, sizeof(adresse)) == -1) {
-    perror("Bind fail\n");
+    perror("Connection bind fail\n");
     close(udp_sock);
     return -1;
   }
 
+  // Initialization of connection with client
+  CONNECT* init = (CONNECT*)malloc(sizeof(CONNECT));
+  init = openClient(udp_sock, (struct sockaddr*) &adresse);
+  COMMUNICATION_PORT = init->port; // Specific port number
 
-  int cont = openClient(udp_sock, (struct sockaddr*) &adresse) ;
+  // Creation of specific socket
+  COMM* spec = (COMM*)malloc(sizeof(COMM));
+  spec = createChannel(COMMUNICATION_PORT);
+  int comm_socket = spec->socket;
 
-  while (cont) {
+  /** Refaire l'initialisation de la forme :
+  adresse.sin_family= AF_INET;
+  adresse.sin_port= htons(CONNECTION_PORT);
+  adresse.sin_addr.s_addr= htonl(INADDR_ANY);
+
+  à faire sur :
+  struct sockaddr_in addr2 = spec->comm_addr;
+  */
+
+  setsockopt(comm_socket, SOL_SOCKET, SO_REUSEADDR, &valid, sizeof(int)); // enable reuse of socket
+
+  // Link addr structure and the communication socket descriptor
+  if (bind(comm_socket, (struct sockaddr*) &addr2, sizeof(struct sockaddr)) == -1) {
+    perror("Communication bind fail\n");
+    close(comm_socket);
+    return -1;
+  }
+
+  while (init->result) {
     printf("\nWaiting for data... \n");
     signal(SIGINT, signal_handle);
 

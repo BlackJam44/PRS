@@ -30,6 +30,7 @@ int main (int argc, char *argv[]) {
   memset((char*)&adresse, 0, sizeof(adresse));
   int size = sizeof(struct sockaddr);
   int valid= 1;
+  int COMMUNICATION_PORT;
   char msg[RCVSIZE];
   char blanmsg[RCVSIZE];
 
@@ -47,12 +48,20 @@ int main (int argc, char *argv[]) {
 
   // setting of addr_in structure
   adresse.sin_family= AF_INET;
-  adresse.sin_port= htons(PORT_SERV);
+  adresse.sin_port= htons(CONNECTION_PORT);
   adresse.sin_addr.s_addr= htonl(INADDR_LOOPBACK);
 
-  int cont = openServer(udp_sock, (struct sockaddr*) &adresse) ;
+  // Initialization of connection with server
+  CONNECT* init = (CONNECT*)malloc(sizeof(CONNECT));
+  init = openServer(udp_sock, (struct sockaddr*) &adresse);
+  COMMUNICATION_PORT = init->port; // Specific port number
 
-  while (cont) {
+  // Creation of specific socket
+  COMM* spec = (COMM*)malloc(sizeof(COMM));
+  spec = createChannel(COMMUNICATION_PORT);
+  setsockopt(spec->socket, SOL_SOCKET, SO_REUSEADDR, &valid, sizeof(int)); // enable reuse of socket
+
+  while (init->result) {
     // data sending
     printf("Type in message to send: \n");
     signal(SIGINT, signal_handle);
@@ -77,8 +86,8 @@ int main (int argc, char *argv[]) {
     /*// stop process
     if (strcmp(msg,"stop\n") == 0) {
       cont= 0;
-    }
-  }*/
+    }*/
+  }
 
   close(udp_sock);
   return 0;

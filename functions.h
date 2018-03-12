@@ -4,10 +4,24 @@
 #define SOCKET_ERROR -1
 #define INVALID_SOCKET -1
 #define RCVSIZE 1024
-#define PORT_SERV 5001
+#define CONNECTION_PORT 5000
 #define SOCK_TAB [40]
 
-int openServer(int socket, struct sockaddr* addr);
-int openClient(int socket, struct sockaddr* addr);
+typedef struct elem_init{
+  int result;
+  char port[5];
+} CONNECT;
+
+typedef struct elem_com{
+  int result;
+  int socket;
+  struct addr* comm_addr;
+} COMM;
+
+CONNECT* openServer(int socket, struct sockaddr* addr);
+CONNECT* openClient(int socket, struct sockaddr* addr);
+COMM* createChannel(char no_port[5]);
+
+char* getPort();
 
 #endif

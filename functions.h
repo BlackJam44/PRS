@@ -9,18 +9,13 @@
 
 typedef struct elem_init{
   int result;
-  char port[5];
+  char* port;
 } CONNECT;
 
-typedef struct elem_com{
-  int result;
-  int socket;
-  struct addr* comm_addr;
-} COMM;
 
 CONNECT* openServer(int socket, struct sockaddr* addr);
 CONNECT* openClient(int socket, struct sockaddr* addr);
-COMM* createChannel(char no_port[5]);
+int createChannel(int no_port);
 
 char* getPort();
 

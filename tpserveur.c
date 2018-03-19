@@ -34,16 +34,16 @@ int main (int argc, char *argv[]) {
   char echo[RCVSIZE];
 
   // creation of connection socket
-  int udp_sock= socket(AF_INET, SOCK_DGRAM, 0);
+  int connect_sock= socket(AF_INET, SOCK_DGRAM, 0);
 
   // handle error
-  if (udp_sock ==  INVALID_SOCKET) {
+  if (connect_sock ==  INVALID_SOCKET) {
     perror("cannot create socket udp\n");
     return -1;
   }
 
   // enables the reuse of the socket
-  setsockopt(udp_sock, SOL_SOCKET, SO_REUSEADDR, &valid, sizeof(int));
+  setsockopt(connect_sock, SOL_SOCKET, SO_REUSEADDR, &valid, sizeof(int));
 
   // setting of addr_in structure
   adresse.sin_family= AF_INET;
@@ -51,35 +51,31 @@ int main (int argc, char *argv[]) {
   adresse.sin_addr.s_addr= htonl(INADDR_ANY);
 
   // Link addr structure and the connection socket descriptor
-  if (bind(udp_sock, (struct sockaddr*) &adresse, sizeof(adresse)) == -1) {
+  if (bind(connect_sock, (struct sockaddr*) &adresse, sizeof(adresse)) == -1) {
     perror("Connection bind fail\n");
-    close(udp_sock);
+    close(connect_sock);
     return -1;
   }
 
   // Initialization of connection with client
   CONNECT* init = (CONNECT*)malloc(sizeof(CONNECT));
-  init = openClient(udp_sock, (struct sockaddr*) &adresse);
-  COMMUNICATION_PORT = init->port; // Specific port number
+  init = openClient(connect_sock, (struct sockaddr*) &adresse);
+  COMMUNICATION_PORT = atoi(init->port); // Specific port number
+	printf("Communication port: %d\n", COMMUNICATION_PORT);
 
-  // Creation of specific socket
-  COMM* spec = (COMM*)malloc(sizeof(COMM));
-  spec = createChannel(COMMUNICATION_PORT);
-  int comm_socket = spec->socket;
-
-  /** Refaire l'initialisation de la forme :
-  adresse.sin_family= AF_INET;
-  adresse.sin_port= htons(CONNECTION_PORT);
-  adresse.sin_addr.s_addr= htonl(INADDR_ANY);
-
-  à faire sur :
-  struct sockaddr_in addr2 = spec->comm_addr;
-  */
+	// creation of communication socket
+	int comm_socket= socket(AF_INET, SOCK_DGRAM, 0);
+	// structure addr_in communication creation
+	struct sockaddr_in adresse2;
+	memset((char*)&adresse2, 0, sizeof(adresse2));
+  adresse2.sin_family= AF_INET;
+  adresse2.sin_port= htons(COMMUNICATION_PORT);
+  adresse2.sin_addr.s_addr= htonl(INADDR_ANY);
 
   setsockopt(comm_socket, SOL_SOCKET, SO_REUSEADDR, &valid, sizeof(int)); // enable reuse of socket
 
   // Link addr structure and the communication socket descriptor
-  if (bind(comm_socket, (struct sockaddr*) &addr2, sizeof(struct sockaddr)) == -1) {
+  if (bind(comm_socket, (struct sockaddr*) &adresse2, sizeof(struct sockaddr)) == -1) {
     perror("Communication bind fail\n");
     close(comm_socket);
     return -1;
@@ -90,25 +86,33 @@ int main (int argc, char *argv[]) {
     signal(SIGINT, signal_handle);
 
     // data reception
-    if( recvfrom(udp_sock, buffer, RCVSIZE, 0, (struct sockaddr*) &adresse, &size) == -1 ){
+    if( recvfrom(comm_socket, buffer, RCVSIZE, 0, (struct sockaddr*) &adresse2, &size) == -1 ){
       perror("Error: recvfrom()\n");
-      close(udp_sock);
+      close(comm_socket);
       exit(-1);
     }
     printf("Received: %s",buffer);
 
     // data echo
     strcpy(echo, buffer);
-    if(sendto(udp_sock, echo, RCVSIZE, 0, (struct sockaddr*) &adresse, size) == -1){
+    if(sendto(comm_socket, echo, RCVSIZE, 0, (struct sockaddr*) &adresse2, size) == -1){
       perror("Error: sendto()\n");
-      close(udp_sock);
+      close(comm_socket);
       exit(-1);
     }
     printf("Echo sent.\n");
+
+		// stop process
+    if (strcmp(buffer,"stop\n") == 0) {
+      init->result = 0;
+			close(comm_socket);
+			printf("Connection closed.\n");
+    }
+
     memset(buffer,0,RCVSIZE);
     memset(echo,0,RCVSIZE);
   }
 
-
+	close(connect_sock);
   return 0;
 }

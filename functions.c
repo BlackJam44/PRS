@@ -21,7 +21,7 @@ CONNECT* openServer(int socket, struct sockaddr* addr){ // exécuté côté clie
 	int size = sizeof(struct sockaddr);
 	char msg[4];
 	char ans[10];
-	char no_port[5];
+	char* no_port = (char*)malloc(sizeof(char));
 
 	printf("Initializing connection...\n");
 	strcpy(msg, "SYN");
@@ -42,7 +42,7 @@ CONNECT* openServer(int socket, struct sockaddr* addr){ // exécuté côté clie
 		perror("Error: port number reception\n");
 		close(socket);
 		exit(-1);
-	} else printf("Port number: %s\n", no_port);
+	} else printf("Port number received: %s\n", no_port);
 
 	if (strcmp(ans,"SYN-ACK") == 0) {
 		strcpy(msg, "ACK");
@@ -58,8 +58,10 @@ CONNECT* openServer(int socket, struct sockaddr* addr){ // exécuté côté clie
 	}
 	printf("\tConnection initialized.\n");
 
+	// returned structure
 	CONNECT* res = (CONNECT*)malloc(sizeof(CONNECT));
 	res->result = 1;
+	res->port = (char*)malloc(sizeof(char));
 	strcpy(res->port, no_port);
 
   return res;
@@ -70,7 +72,7 @@ CONNECT* openClient(int socket, struct sockaddr* addr){ // exécuté côté serv
 	char msg[8];
 	char req1[10];
 	char req2[10];
-	char no_port[5];
+	char* no_port = (char*)malloc(sizeof(char));
 
 	printf("Waiting for connection...\n");
 	strcpy(msg, "SYN-ACK");
@@ -88,8 +90,9 @@ CONNECT* openClient(int socket, struct sockaddr* addr){ // exécuté côté serv
 			exit(-1);
 		}
 
-		printf("Sending port number...\n");
+		// wait(1);
 		strcpy(no_port, getPort());
+		printf("Sending port number %s\n", no_port);
 		if(sendto(socket, no_port, 5, 0, addr, size) == -1){
 			perror("Error: port number\n");
 			close(socket);
@@ -114,46 +117,22 @@ CONNECT* openClient(int socket, struct sockaddr* addr){ // exécuté côté serv
 
 	printf("\tConnection initialized.\n");
 
+	// returned structure
 	CONNECT* res = (CONNECT*)malloc(sizeof(CONNECT));
 	res->result = 1;
+	res->port = (char*)malloc(sizeof(char));
 	strcpy(res->port, no_port);
 
 	return res;
 }
 
-// creating communication channel
-COMM* createChannel(char no_port[5]){
-	COMM* res = (COMM*)malloc(sizeof(COMM));
-	struct sockaddr_in adresse;
-	memset((char*)&adresse, 0, sizeof(adresse));
-	int size = sizeof(struct sockaddr);
-
-	// create socket udp
-	int udp_sock= socket(AF_INET, SOCK_DGRAM, 0);
-
-	// handle error
-	if (udp_sock == INVALID_SOCKET) {
-		perror("cannot create socket\n");
-		exit(EXIT_FAILURE);
-	}
-
-	// setting of addr_in structure
-	adresse.sin_family= AF_INET;
-	adresse.sin_port= htons(no_port);
-	adresse.sin_addr.s_addr= htonl(INADDR_LOOPBACK);
-
-	res->result = 1;
-	res->socket = udp_sock;
-	res->comm_addr = (struct sockaddr*) &adresse;
-
-	return res;
-}
 
 // génère un numéro de port random entre 5001 et 10000
 char* getPort(){
 	srand(time(NULL));
-	char res[5];
+	char* res = (char*)malloc(sizeof(char));
 	int a = (rand()%5000) + 5001;
 	snprintf(res, 5, "%d", a);
+	printf("random port generated : %s\n", res);
 	return res;
 }

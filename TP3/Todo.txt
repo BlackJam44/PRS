@@ -1,0 +1,5 @@
+Thing to do :
+
+1) understand why EOF are detected at every frame (in tpclient.c)
+2) test to send the good number of frame (while condition in tpclient.c)
+3) check that image received is the same

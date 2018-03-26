@@ -104,15 +104,24 @@ int main (int argc, char *argv[]) {
 				int index;
 
 				// file size computation
-				fseek(fp, 0, SEEK_END);
-				int size = ftell(fp);
-				printf("Size of file = %f Mo\n", (((double)size)/800000));
+				fseek(fp, 0, SEEK_END); // parse
+				int fp_size = ftell(fp); // compute
+				rewind(fp); // reinitialize
+				printf("Size of file : %f Mo\n", (((double)fp_size)/1000000));
 
 				// file fragmentation in frames
-				while(index < size){
-					FRAME* frame = fragment(fp, index);
+				//while(index < (int)(fp_size/1018) ){
+				while(index < 20){
+					FRAME* frame = fragment(fp, filename, index);
+					char bufferData [RCVSIZE-6];
+					strcpy(bufferData, frame->data);
 
 					// send frame number
+					char* norm = normalizeNumber(frame->seq_no);
+					strcpy(frame->seq_no, norm);
+					printf("\nFrame %s \n", frame->seq_no);
+					printf("Content sent:\n%s\n", bufferData);
+
 					if(sendto(comm_socket, frame->seq_no, 6, 0, (struct sockaddr*) &adresse2, size) == -1){
 			      perror("Error: sendto(frame->seq_no)\n");
 			      close(comm_socket);
@@ -120,13 +129,13 @@ int main (int argc, char *argv[]) {
 			    }
 
 					// send frame data
-					if(sendto(comm_socket, frame->data, RCVSIZE-6, 0, (struct sockaddr*) &adresse2, size) == -1){
+					if(sendto(comm_socket, bufferData, RCVSIZE-6, 0, (struct sockaddr*) &adresse2, size) == -1){
 			      perror("Error: sendto(frame->data)\n");
 			      close(comm_socket);
 			      exit(-1);
 			    }
 
-					index+=1018;
+					index++;
 				}
 			}
 			if(sendto(comm_socket, "EOF", 3, 0, (struct sockaddr*) &adresse2, size) == -1){

@@ -94,33 +94,36 @@ int main (int argc, char *argv[]) {
     printf("Received: %s",buffer);
 
 		// file reception
-		if(strcmp(msg, "file\n") == 0) {
+		if(strcmp(buffer, "file\n") == 0) {
 			FILE* fp = fopen("image.jpg", "a"); // write at the EOF
 
 /** Vérifier que le fichier soit bien découpé, que les trames s'envoient bien, faire attention
 au seq_no et au EOF
 */
+
 			while(1){
 				FRAME* frame= (FRAME*)malloc(sizeof(FRAME));
 
-				if(recvfrom(comm_socket, frame->seq_no, RCVSIZE, 0, (struct sockaddr*) &adresse2, &size) == -1 ){
+				if(recvfrom(comm_socket, frame->seq_no, 6, 0, (struct sockaddr*) &adresse2, &size) == -1 ){
 					perror("Error: file recvfrom(seq_no)\n");
 		      close(comm_socket);
 		      exit(-1);
-				} else printf("Frame sequence number: %s\n", frame->seq_no);
+				} else printf("\nFrame %s \n", frame->seq_no);
 
 				// detects the end of received file
 				if(strcmp(frame->seq_no, "EOF") == 0){
 					break;
 				}
 
-				if(recvfrom(comm_socket, frame->data, RCVSIZE, 0, (struct sockaddr*) &adresse2, &size) == -1 ){
+				if(recvfrom(comm_socket, frame->data, RCVSIZE-6, 0, (struct sockaddr*) &adresse2, &size) == -1 ){
 					perror("Error: file recvfrom(data)\n");
 		      close(comm_socket);
 		      exit(-1);
 				}else{
+					printf("Content received:\n%s\n", frame->data);
 					// writing in the file
-					fputs(frame->data, fp);
+					int nb_written = fwrite(frame->data, RCVSIZE-6, 1, fp);
+					printf("written : %d \n", nb_written);
 				}
 
 			}

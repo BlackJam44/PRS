@@ -21,6 +21,7 @@ CONNECT* openServer(int socket, struct sockaddr* addr);
 CONNECT* openClient(int socket, struct sockaddr* addr);
 int createChannel(int no_port);
 char* getPort();
-FRAME* fragment(FILE* fp, int index);
+FRAME* fragment(FILE* fp, char* filename, int index);
+char* normalizeNumber(char* noSeq);
 
 #endif

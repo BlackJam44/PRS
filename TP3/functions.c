@@ -42,7 +42,7 @@ CONNECT* openServer(int socket, struct sockaddr* addr){ // exécuté côté clie
 		perror("Error: port number reception\n");
 		close(socket);
 		exit(-1);
-	} else printf("Port number received: %s\n", no_port);
+	}
 
 	if (strcmp(ans,"SYN-ACK") == 0) {
 		strcpy(msg, "ACK");
@@ -92,7 +92,6 @@ CONNECT* openClient(int socket, struct sockaddr* addr){ // exécuté côté serv
 
 		// wait(1);
 		strcpy(no_port, getPort());
-		printf("Sending port number %s\n", no_port);
 		if(sendto(socket, no_port, 5, 0, addr, size) == -1){
 			perror("Error: port number\n");
 			close(socket);
@@ -136,23 +135,33 @@ char* getPort(){
 	return res;
 }
 
-FRAME* fragment(FILE* fp, int index){
+FRAME* fragment(FILE* fp, char* filename, int index){
 	FRAME* frame = (FRAME*)malloc(sizeof(FRAME));
 	int j = index*1018;
+	int nb_read = 0;
 
-	snprintf(frame->seq_no, 6, "%d", index); // copie du numéro de séquence
-	printf("Frame sequence number: %s\n", frame->seq_no);
+	snprintf(frame->seq_no, 6, "%d", index); // sequence number copying
 
-	int i, c;
-	for(i=0; i<RCVSIZE-6; i++){
-      c = fgetc(fp);
-      if(feof(fp)) {
-				printf("EOF at position %d\n", j);
-         break ;
-      }
-			j++;
-			frame->data[i] = c;
+	int i=0, cont=1;
+	while(cont && (i < RCVSIZE-6)){
+		nb_read = fread(frame->data, RCVSIZE-6, 1, fp);
+		if(feof(fp)){
+			cont = 0;
+		}
+		j++;
+		i++;
+	}if(j!= RCVSIZE-6) {
+		printf("EOF at position %d\n", j);
 	}
-	printf("Frame content:\n%s\n", frame->data);
 	return frame;
+}
+
+char* normalizeNumber(char* noSeq){
+	char normalized[6] = "000000";
+	int n, i;
+  n = strlen(noSeq);
+	for(i=0; i<n; i++){
+		normalized[6-n+i]=noSeq[i];
+	}
+	return normalized;
 }
